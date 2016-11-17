@@ -25,9 +25,13 @@ def create_blank(width, height, rgb_color=(0, 0, 0)):
 
     return image
 
-def filter_matches(kp1, kp2, matches):
+def filter_matches(kp1, kp2, matches, ratio = 0.65):
     mkp1, mkp2 = [], []
-    #TODO обьединение матчей в большой матч
+    for m in matches:
+        if len(m) == 2 and m[0].distance < m[1].distance * ratio:
+            m = m[0]
+            mkp1.append( kp1[m.queryIdx] )
+            mkp2.append( kp2[m.trainIdx] )
     p1 = np.float32([kp.pt for kp in mkp1])
     p2 = np.float32([kp.pt for kp in mkp2])
     kp_pairs = zip(mkp1, mkp2)
@@ -68,7 +72,13 @@ def detect(Source):
         match_img = imgs[0]
         match_desc= seeds[0]
 
-        #TODO - поиск блоков с рекламой
+        for i, seed in enumerate(seeds):
+            raw_matches = matcher.knnMatch(desc, trainDescriptors = seed[1], k = 2)
+            p1, p2, kp_pairs = filter_matches(kp, seed[0], raw_matches)
+            if len(p1) > max_matches:
+                max_matches = len(p1)
+                match_desc = seed
+                match_img = imgs[i]
 
         return (match_desc, match_img)
             
